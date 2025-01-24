@@ -138,6 +138,7 @@ pub enum InitShell {
     Elvish,
     Fish,
     Nushell,
+    #[clap(alias = "ksh")]
     Posix,
     Powershell,
     Xonsh,

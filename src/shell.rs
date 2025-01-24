@@ -10,7 +10,7 @@ pub struct Opts<'a> {
 
 macro_rules! make_template {
     ($name:ident, $path:expr) => {
-        #[derive(::std::fmt::Debug, ::askama::Template)]
+        #[derive(::std::fmt::Debug, ::rinja::Template)]
         #[template(path = $path)]
         pub struct $name<'a>(pub &'a self::Opts<'a>);
 
@@ -35,8 +35,8 @@ make_template!(Zsh, "zsh.txt");
 #[cfg(feature = "nix-dev")]
 #[cfg(test)]
 mod tests {
-    use askama::Template;
     use assert_cmd::Command;
+    use rinja::Template;
     use rstest::rstest;
     use rstest_reuse::{apply, template};
 
@@ -70,7 +70,7 @@ mod tests {
         let source = Bash(&opts).render().unwrap();
 
         Command::new("shellcheck")
-            .args(["--enable", "all", "--shell", "bash", "-"])
+            .args(["--enable=all", "-"])
             .write_stdin(source)
             .assert()
             .success()
@@ -111,6 +111,16 @@ mod tests {
             .success()
             .stdout("")
             .stderr("");
+    }
+
+    #[apply(opts)]
+    fn fish_no_builtin_abbr(cmd: Option<&str>, hook: InitHook, echo: bool, resolve_symlinks: bool) {
+        let opts = Opts { cmd, hook, echo, resolve_symlinks };
+        let source = Fish(&opts).render().unwrap();
+        assert!(
+            !source.contains("builtin abbr"),
+            "`builtin abbr` does not work on older versions of Fish"
+        );
     }
 
     #[apply(opts)]
@@ -196,12 +206,12 @@ mod tests {
     }
 
     #[apply(opts)]
-    fn posix_shellcheck_(cmd: Option<&str>, hook: InitHook, echo: bool, resolve_symlinks: bool) {
+    fn posix_shellcheck(cmd: Option<&str>, hook: InitHook, echo: bool, resolve_symlinks: bool) {
         let opts = Opts { cmd, hook, echo, resolve_symlinks };
         let source = Posix(&opts).render().unwrap();
 
         Command::new("shellcheck")
-            .args(["--enable", "all", "--shell", "sh", "-"])
+            .args(["--enable=all", "-"])
             .write_stdin(source)
             .assert()
             .success()
@@ -298,7 +308,7 @@ mod tests {
 
         // ShellCheck doesn't support zsh yet: https://github.com/koalaman/shellcheck/issues/809
         Command::new("shellcheck")
-            .args(["--enable", "all", "--shell", "bash", "-"])
+            .args(["--enable=all", "-"])
             .write_stdin(source)
             .assert()
             .success()
